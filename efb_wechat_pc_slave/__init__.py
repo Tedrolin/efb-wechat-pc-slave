@@ -25,7 +25,7 @@ from .ChatMgr import ChatMgr
 from .CustomTypes import EFBGroupChat, EFBPrivateChat, EFBGroupMember
 from .MsgDecorator import efb_text_simple_wrapper
 from .WechatPcMsgProcessor import MsgProcessor
-from .utils import process_quote_text, download_file, RWLock
+from .utils import process_quote_text, download_file
 
 TYPE_HANDLERS = {
     1: MsgProcessor.text_msg,
