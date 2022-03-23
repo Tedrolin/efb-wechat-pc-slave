@@ -41,7 +41,7 @@ class WechatPcChannel(SlaveChannel):
     wechatPc: WechatPc
     client: WechatPcClient
 
-    config: Dict[str, Any]
+    config: Dict[str, Any] = {}
 
     info_list = TTLCache(maxsize=2, ttl=600)
     info_dict = TTLCache(maxsize=2, ttl=600)
