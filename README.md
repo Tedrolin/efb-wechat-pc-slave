@@ -16,8 +16,8 @@ pip3 install -U git+https://github.com/tedrolin/efb-wechat-pc-slave
 
 4. Configure
 ```
-mkdir -p ~/.ehforwarderbot/profiles/default/tedrolin.wechat_pc
-touch ~/.ehforwarderbot/profiles/default/tedrolin.wechat_pc/config.yaml
+mkdir -p ~/.ehforwarderbot/profiles/default/tedrolin.wechatPc
+touch ~/.ehforwarderbot/profiles/default/tedrolin.wechatPc/config.yaml
 ```
 
 5. Feed the config.yaml with following content
