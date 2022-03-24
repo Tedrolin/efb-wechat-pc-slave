@@ -67,10 +67,11 @@ class WechatPcChannel(SlaveChannel):
             raise EFBException("wechatPc uri not found in config")
         uri = self.config['uri']
         if 'APP_ID' in self.config and "APP_KEY" in self.config:
-            ts = int(datetime.timestamp(datetime.now()))
-            uri += hashlib.sha256(f"?app_id={self.config['APP_ID']}&timestamp={ts}&app_key={self.config['APP_KEY']}")\
+            ts = int(datetime.timestamp(datetime.now()) * 1000)
+            sign = hashlib.sha256(f"app_id={self.config['APP_ID']}&timestamp={ts}&app_key{self.config['APP_KEY']}".encode())\
                 .hexdigest()
-        self.wechatPc = WechatPc(self.config.get('uri', 'ws://127.0.0.1:5678'))
+            uri += f'?app_id={self.config["APP_ID"]}&timestamp={ts}&hash={sign}'
+        self.wechatPc = WechatPc(uri)
         self.client = self.wechatPc.register_client("abcd")  # dummy id
         self.loop = asyncio.get_event_loop()
         self.isLogon = False
@@ -299,7 +300,7 @@ class WechatPcChannel(SlaveChannel):
 
     def update_friend_info(self):
         with self.update_friend_lock:
-            if self.info_list['friend']:
+            if 'friend' in self.info_list and self.info_list['friend']:
                 return
             asyncio.run_coroutine_threadsafe(self.client.get_friend_list(), self.loop).result()
             self.update_friend_event.wait()
@@ -308,7 +309,7 @@ class WechatPcChannel(SlaveChannel):
 
     async def async_update_friend_info(self):
         with self.update_friend_lock:
-            if self.info_list['friend']:
+            if 'friend' in self.info_list and self.info_list['friend']:
                 return
             await self.client.get_friend_list()
             self.update_friend_event.wait()
