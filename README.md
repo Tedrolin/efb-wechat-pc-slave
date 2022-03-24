@@ -23,6 +23,8 @@ touch ~/.ehforwarderbot/profiles/default/tedrolin.wechatPc/config.yaml
 5. Feed the config.yaml with following content
 ```yaml
 uri: "ws://127.0.0.1:5678"  # ws path to wechat pc 
+APP_ID: "CD7160A983DD8A288A56BAA078781FCA"  # Optional, app id corresponds to the one configured on wechathook
+APP_KEY: "F2B283D51B3F4A1A4ECCB7A3621E7740"
 ```
 
 6. Add me to `~/.ehforwarderbot/profiles/default/`
