@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import queue
 import threading
 import uuid
 from traceback import print_exc
@@ -45,11 +46,18 @@ class WechatPcChannel(SlaveChannel):
 
     config: Dict[str, Any] = {}
 
-    info_list = TTLCache(maxsize=2, ttl=600)
-    info_dict = TTLCache(maxsize=2, ttl=600)
+    # info_list = TTLCache(maxsize=2, ttl=600)
+    # info_dict = TTLCache(maxsize=2, ttl=600)
+
+    info_list = {}
+    info_dict = {}
 
     update_friend_event = threading.Event()
+    async_update_friend_event = asyncio.Event()
     update_friend_lock = threading.Lock()
+    async_update_friend_lock = asyncio.Lock()
+
+    update_friend_queue = queue.Queue()
 
     __version__ = version.__version__
 
@@ -86,9 +94,12 @@ class WechatPcChannel(SlaveChannel):
 
         @self.client.add_handler(OPCODE_FRIEND_LIST)
         async def on_friend_list(msg: dict):
+            self.logger.debug(f"on_friend_list: {msg}")
             if 'friendList' in msg:
                 self.info_list['friend'] = msg['friendList']
+            self.process_friend_info()
             self.update_friend_event.set()
+            # self.async_update_friend_event.set()
 
         @self.client.add_handler(OPCODE_WECHAT_QRCODE)
         async def on_qr_code(msg: dict):
@@ -132,7 +143,7 @@ class WechatPcChannel(SlaveChannel):
                 group_remark_name = await self.async_get_friend_info('nickname', msg['roomId'])
                 chat = ChatMgr.build_efb_chat_as_group(EFBGroupChat(
                     uid=msg['roomId'],
-                    name=group_name or group_remark_name
+                    name=group_name or group_remark_name or msg['roomId']
                 ))
                 author = ChatMgr.build_efb_chat_as_member(chat, EFBGroupMember(
                     name=username,
@@ -155,12 +166,19 @@ class WechatPcChannel(SlaveChannel):
             efb_msg.deliver_to = coordinator.master
             coordinator.send_message(efb_msg)
 
+        async def cron_update_friends():
+            while True:
+                await asyncio.sleep(60 * 10)
+                self.logger.debug("Start updating friends")
+                await self.client.get_friend_list()
+
         def connect():
             nonlocal self
             asyncio.set_event_loop(self.loop)
             self.loop.run_until_complete(self.wechatPc.connect())
             connected_event.set()
             self.loop.create_task(self.wechatPc.run())
+            self.loop.create_task(cron_update_friends())
             self.loop.run_forever()
 
         try:
@@ -197,6 +215,7 @@ class WechatPcChannel(SlaveChannel):
 
     def get_chat(self, chat_uid: ChatID) -> 'Chat':
         if 'chat' not in self.info_list or not self.info_list['chat']:
+            self.logger.debug("Chat list is empty. Fetching...")
             self.update_friend_info()
         for chat in self.info_list['chat']:
             if chat_uid == chat.uid:
@@ -205,6 +224,7 @@ class WechatPcChannel(SlaveChannel):
 
     def get_chats(self) -> Collection['Chat']:
         if 'chat' not in self.info_list or not self.info_list['chat']:
+            self.logger.debug("Chat list is empty. Fetching...")
             self.update_friend_info()
         return self.info_list['chat']
 
@@ -254,8 +274,8 @@ class WechatPcChannel(SlaveChannel):
         for friend in self.info_list['friend']:
             self.info_dict['friend'][friend['wxid']] = friend
 
-            friend_name = friend.get('username', None)
-            friend_remark = friend.get('nickname', None)
+            friend_name = friend.get('username', '')
+            friend_remark = friend.get('nickname', '')
 
             if '@chatroom' not in friend['wxid']:
                 new_entity = EFBPrivateChat(
@@ -288,12 +308,12 @@ class WechatPcChannel(SlaveChannel):
                     self.info_dict['friend'][friend['wxid']]['nickname'] = group_name
                     new_entity = EFBGroupChat(
                         uid=friend['wxid'],
-                        name=group_name or group_remark
+                        name=group_name or group_remark or friend['wxid']
                     )
                 else:
                     new_entity = EFBGroupChat(
                         uid=friend['wxid'],
-                        name=group_name or group_remark
+                        name=group_name or group_remark or friend['wxid']
                     )
                 self.info_list['chat'].append(ChatMgr.build_efb_chat_as_group(new_entity))
                 self.info_dict['chat'][friend['wxid']] = new_entity
@@ -302,19 +322,25 @@ class WechatPcChannel(SlaveChannel):
         with self.update_friend_lock:
             if 'friend' in self.info_list and self.info_list['friend']:
                 return
+            self.logger.debug('Updating friend info...')
+            self.update_friend_event.clear()
             asyncio.run_coroutine_threadsafe(self.client.get_friend_list(), self.loop).result()
             self.update_friend_event.wait()
+            self.logger.debug('Friend retrieved. Start processing...')
             self.process_friend_info()
             self.update_friend_event.clear()
 
     async def async_update_friend_info(self):
-        with self.update_friend_lock:
+        async with self.async_update_friend_lock:
             if 'friend' in self.info_list and self.info_list['friend']:
                 return
+            self.logger.debug('Updating friend info...')
+            self.async_update_friend_event.clear()
             await self.client.get_friend_list()
-            self.update_friend_event.wait()
+            self.logger.debug('Friend retrieved. Start processing...')
+            await self.async_update_friend_event.wait()
             self.process_friend_info()
-            self.update_friend_event.clear()
+            self.async_update_friend_event.clear()
 
     async def async_get_chat_info(self, wechat_id: int) -> Union[None, Chat]:
         # logging.getLogger(__name__).info('async_get_friend_remark called')
@@ -350,15 +376,15 @@ class WechatPcChannel(SlaveChannel):
 
     async def async_get_friend_info(self, item: str, wechat_id: int) -> Union[None, str]:
         # logging.getLogger(__name__).info('async_get_friend_remark called')
-        count = 0
-        while count <= 1:
-            if not self.info_dict.get('friend', None):
-                await self.async_update_friend_info()
-                count += 1
-            else:
-                break
-        if count > 1:  # Failure or friend not found
-            raise Exception("Failed to update friend list!")  # todo Optimize error handling
+        # count = 0
+        # while count <= 1:
+        #     if not self.info_dict.get('friend', None):
+        #         await self.async_update_friend_info()
+        #         count += 1
+        #     else:
+        #         break
+        # if count > 1:  # Failure or friend not found
+        #     raise Exception("Failed to update friend list!")  # todo Optimize error handling
         # logging.getLogger(__name__).info('async_get_friend_remark returned')
         if not self.info_dict.get('friend', None) or wechat_id not in self.info_dict['friend']:
             return None
