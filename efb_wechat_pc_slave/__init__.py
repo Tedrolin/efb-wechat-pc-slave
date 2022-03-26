@@ -98,22 +98,17 @@ class WechatPcChannel(SlaveChannel):
             if 'friendList' in msg:
                 total = msg['total']
                 current_page = msg['page']
+                #Prevent the list from being emptied every time
+                self.page = current_page
                 if total % 100 == 0:
                     total_page = total // 100
                 else:
                     total_page = total // 100 + 1
                 self.info_list['friend'] = msg['friendList']
                 self.process_friend_info()
-                if int(total_page) > int(current_page):
-                   self.logger.log(99,"Fetching friend list...")
-            try:
-                self.logger.log(99, "total page: %s" % str(total_page))
-                self.logger.log(99, "current page: %s" % str(current_page))
-            except:
-                pass
-            
-            if str(total_page) == str(msg['page']):
-                self.update_friend_event.set()
+   
+                if str(total_page) == str(msg['page']):
+                    self.update_friend_event.set()
             # self.async_update_friend_event.set()
 
         @self.client.add_handler(OPCODE_WECHAT_QRCODE)
@@ -287,9 +282,10 @@ class WechatPcChannel(SlaveChannel):
         pass
 
     def process_friend_info(self):
-        self.info_dict['friend'] = {}
-        self.info_dict['chat'] = {}
-        self.info_list['chat'] = []
+        if self.page == 1:
+            self.info_dict['friend'] = {}
+            self.info_dict['chat'] = {}
+            self.info_list['chat'] = []
         # For the first iteration, we don't care about the group chat
         for friend in self.info_list['friend']:
             self.info_dict['friend'][friend['wxid']] = friend
