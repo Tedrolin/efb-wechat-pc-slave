@@ -102,8 +102,8 @@ class WechatPcChannel(SlaveChannel):
                     self.logger.debug("Fetching friend list...")
             
             try:
-                self.logger.debug("total friend number: %s" % str(msg['total']))
-                self.logger.debug("current friend list number: %s" % str(len(self.info_list['friend'])))
+                self.logger.log(99, "total friend number: %s" % str(msg['total']))
+                self.logger.log(99, "current friend list number: %s" % str(len(self.info_list['friend'])))
             except:
                 pass
             
