@@ -128,10 +128,10 @@ class WechatPcChannel(SlaveChannel):
                 return
             if msg.get('isOwner', 1) == 1:
                 return
-            username = await self.async_get_friend_info('username', msg['wxid'])
+            username = await self.async_get_friend_info('nickname', msg['wxid'])
             if username is None:
                 username = msg['wxid']
-            remark_name = await self.async_get_friend_info('nickname', msg['wxid'])
+            remark_name = await self.async_get_friend_info('remake', msg['wxid'])
             if remark_name is None:
                 remark_name = msg['wxid']
 
@@ -151,9 +151,14 @@ class WechatPcChannel(SlaveChannel):
                     uid=msg['wxid']
                 ))
             else:
+                name = msg['wxid']
+                if remark_name != msg['wxid']:
+                    name = remark_name
+                elif username != msg['wxid']:
+                    name = username
                 chat = ChatMgr.build_efb_chat_as_private(EFBPrivateChat(
                     uid=msg['wxid'],
-                    name=remark_name,
+                    name=name,
                 ))
                 author = chat.other
 
@@ -274,8 +279,8 @@ class WechatPcChannel(SlaveChannel):
         for friend in self.info_list['friend']:
             self.info_dict['friend'][friend['wxid']] = friend
 
-            friend_name = friend.get('username', '')
-            friend_remark = friend.get('nickname', '')
+            friend_name = friend.get('nickname', '')
+            friend_remark = friend.get('remark', '')
 
             if '@chatroom' not in friend['wxid']:
                 new_entity = EFBPrivateChat(
