@@ -97,8 +97,16 @@ class WechatPcChannel(SlaveChannel):
             self.logger.debug(f"on_friend_list: {msg}")
             if 'friendList' in msg:
                 self.info_list['friend'] = msg['friendList']
-            self.process_friend_info()
-            self.update_friend_event.set()
+                self.process_friend_info()
+                if msg['total'] > len(self.info_dict):
+                    self.logger.debug("Fetching friend list...")
+                else:
+                    self.update_friend_event.set()
+            try:
+                self.logger.debug("total friend number: %s" % str(msg['total']))
+                self.logger.debug("current friend list number: %s" % str(len(self.info_list['friend'])))
+            except:
+                pass
             # self.async_update_friend_event.set()
 
         @self.client.add_handler(OPCODE_WECHAT_QRCODE)
