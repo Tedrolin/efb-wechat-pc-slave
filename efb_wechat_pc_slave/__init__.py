@@ -96,9 +96,19 @@ class WechatPcChannel(SlaveChannel):
         async def on_friend_list(msg: dict):
             self.logger.debug(f"on_friend_list: {msg}")
             if 'friendList' in msg:
+                total = msg['total']
+                current_page = msg['page']
+                #Prevent the list from being emptied every time
+                self.page = current_page
+                if total % 100 == 0:
+                    total_page = total // 100
+                else:
+                    total_page = total // 100 + 1
                 self.info_list['friend'] = msg['friendList']
-            self.process_friend_info()
-            self.update_friend_event.set()
+                self.process_friend_info()
+   
+                if str(total_page) == str(msg['page']):
+                    self.update_friend_event.set()
             # self.async_update_friend_event.set()
 
         @self.client.add_handler(OPCODE_WECHAT_QRCODE)
@@ -128,13 +138,8 @@ class WechatPcChannel(SlaveChannel):
                 return
             if msg.get('isOwner', 1) == 1:
                 return
-            username = await self.async_get_friend_info('username', msg['wxid'])
-            if username is None:
-                username = msg['wxid']
-            remark_name = await self.async_get_friend_info('nickname', msg['wxid'])
-            if remark_name is None:
-                remark_name = msg['wxid']
-
+            username = await self.async_get_friend_info('nickname', msg['wxid'])
+            remark_name = await self.async_get_friend_info('remark', msg['wxid'])
             chat = None
             author = None
 
@@ -153,7 +158,7 @@ class WechatPcChannel(SlaveChannel):
             else:
                 chat = ChatMgr.build_efb_chat_as_private(EFBPrivateChat(
                     uid=msg['wxid'],
-                    name=remark_name,
+                    name= remark_name or username or msg['wxid'],
                 ))
                 author = chat.other
 
@@ -267,15 +272,16 @@ class WechatPcChannel(SlaveChannel):
         pass
 
     def process_friend_info(self):
-        self.info_dict['friend'] = {}
-        self.info_dict['chat'] = {}
-        self.info_list['chat'] = []
+        if self.page == 1:
+            self.info_dict['friend'] = {}
+            self.info_dict['chat'] = {}
+            self.info_list['chat'] = []
         # For the first iteration, we don't care about the group chat
         for friend in self.info_list['friend']:
             self.info_dict['friend'][friend['wxid']] = friend
 
-            friend_name = friend.get('username', '')
-            friend_remark = friend.get('nickname', '')
+            friend_name = friend.get('nickname', '')
+            friend_remark = friend.get('remark', '')
 
             if '@chatroom' not in friend['wxid']:
                 new_entity = EFBPrivateChat(
