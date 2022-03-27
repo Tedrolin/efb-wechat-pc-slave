@@ -139,7 +139,7 @@ class WechatPcChannel(SlaveChannel):
             if msg.get('isOwner', 1) == 1:
                 return
             username = await self.async_get_friend_info('nickname', msg['wxid'])
-            remark_name = await self.async_get_friend_info('remake', msg['wxid'])
+            remark_name = await self.async_get_friend_info('remark', msg['wxid'])
             self.logger.log(99, f"Receive message from {username}({remark_name})")
             chat = None
             author = None
