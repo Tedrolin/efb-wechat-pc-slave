@@ -139,12 +139,8 @@ class WechatPcChannel(SlaveChannel):
             if msg.get('isOwner', 1) == 1:
                 return
             username = await self.async_get_friend_info('nickname', msg['wxid'])
-            if username is None:
-                username = msg['wxid']
             remark_name = await self.async_get_friend_info('remake', msg['wxid'])
-            if remark_name is None:
-                remark_name = msg['wxid']
-
+            self.logger.log(99, f"Receive message from {username}({remark_name})")
             chat = None
             author = None
 
@@ -168,7 +164,7 @@ class WechatPcChannel(SlaveChannel):
                     name = username
                 chat = ChatMgr.build_efb_chat_as_private(EFBPrivateChat(
                     uid=msg['wxid'],
-                    name=name,
+                    name= remark_name or username or msg['wxid'],
                 ))
                 author = chat.other
 
