@@ -32,7 +32,8 @@ from .utils import process_quote_text, download_file
 
 TYPE_HANDLERS = {
     1: MsgProcessor.text_msg,
-    3: MsgProcessor.image_msg
+    3: MsgProcessor.image_msg,
+    49: MsgProcessor.msgType49_xml_msg
 }
 
 
@@ -163,13 +164,15 @@ class WechatPcChannel(SlaveChannel):
                 author = chat.other
 
             if 'msgType' in msg and msg['msgType'] in TYPE_HANDLERS:
-                efb_msg = TYPE_HANDLERS[msg['msgType']](msg)
+                efb_msgs = TYPE_HANDLERS[msg['msgType']](msg)
             else:
-                efb_msg = efb_text_simple_wrapper(msg['content'])
-            efb_msg.author = author
-            efb_msg.chat = chat
-            efb_msg.deliver_to = coordinator.master
-            coordinator.send_message(efb_msg)
+                efb_msgs = efb_text_simple_wrapper(msg['content'])
+            
+            for efb_msg in efb_msgs:
+                efb_msg.author = author
+                efb_msg.chat = chat
+                efb_msg.deliver_to = coordinator.master
+                coordinator.send_message(efb_msg)
 
         async def cron_update_friends():
             while True:
@@ -235,6 +238,10 @@ class WechatPcChannel(SlaveChannel):
 
     def send_message(self, msg: 'Message') -> 'Message':
         chat_uid = msg.chat.uid
+        # self.logger.debug(f"message.vendor_specific.get('is_mp', False): {msg.vendor_specific.get('is_mp', False)}")
+        if msg.vendor_specific is not None:
+            msg.chat.vendor_specific = msg.vendor_specific
+        
         if msg.edit:
             pass  # todo
 

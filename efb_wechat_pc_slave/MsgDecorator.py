@@ -1,12 +1,13 @@
 from typing import Mapping, Tuple, Union, IO
 import magic
+from lxml import etree
 
 from ehforwarderbot import MsgType, Chat
 from ehforwarderbot.chat import ChatMember
-from ehforwarderbot.message import Substitutions, Message
+from ehforwarderbot.message import Substitutions, Message, LinkAttribute
 
 
-def efb_text_simple_wrapper(text: str, ats: Union[Mapping[Tuple[int, int], Union[Chat, ChatMember]], None] = None) -> Message:
+def efb_text_simple_wrapper(text: str, ats: Union[Mapping[Tuple[int, int], Union[Chat, ChatMember]], None] = None) -> Tuple[Message]:
     """
     A simple EFB message wrapper for plain text. Emojis are presented as is (plain text).
     :param text: The content of the message
@@ -20,10 +21,84 @@ def efb_text_simple_wrapper(text: str, ats: Union[Mapping[Tuple[int, int], Union
     )
     if ats:
         efb_msg.substitutions = Substitutions(ats)
-    return efb_msg
+    return (efb_msg,)
+
+def efb_msgType49_xml_wrapper(text: str) -> Tuple[Message]:
+    """
+    处理msgType49消息 - 复合xml, xml 中 //appmsg/type 指示具体消息类型.
+    /msg/appmsg/type
+    已知：
+    //appmsg/type = 5 : 链接（公众号文章）
+    //appmsg/type = 17 : 位置共享
+    //appmsg/type = 74 : 文件 (收到文件的第一个提示)
+    //appmsg/type = 6 : 文件 （内容长） 第二个提示，也有可能 msgType = 10000 【没有任何标识，无法判断是否与前面消息有关联】
+
+    :param text: The content of the message
+    :return: EFB Message
+    """
+
+    xml = etree.fromstring(text)
+    type = int(xml.xpath('/msg/appmsg/type/text()')[0])
+    
+    efb_msgs = []
+    result_text = ""
+
+    if type == 5: # xml链接
+        showtype = int(xml.xpath('/msg/appmsg/showtype/text()')[0])
+        if showtype == 0: # 消息对话中的(测试的是从公众号转发给好友)
+            sourceusername = xml.xpath('/msg/appmsg/sourceusername/text()')[0]
+            sourcedisplayname = xml.xpath('/msg/appmsg/sourcedisplayname/text()')[0]
+            result_text += f"\n转发自公众号【{sourcedisplayname}(id: {sourceusername})】\n\n"
+
+            title = xml.xpath('/msg/appmsg/title/text()')[0]
+            url = xml.xpath('/msg/appmsg/url/text()')[0]
+            des = xml.xpath('/msg/appmsg/des/text()')[0]
+            thumburl = xml.xpath('/msg/appmsg/thumburl/text()')[0]
+            attribute = LinkAttribute(
+                title=title,
+                description=des,
+                url=url,
+                image=thumburl
+            )
+            efb_msg = Message(
+                attributes=attribute,
+                type=MsgType.Link,
+                text=result_text,
+                vendor_specific={ "is_mp": True }
+            )
+            efb_msgs.append(efb_msg)
+        elif showtype == 1: # 公众号发的推送
+            items = xml.xpath('//item')
+            for item in items:
+                title = item.find("title").text
+                url = item.find("url").text
+                digest = item.find("digest").text
+                cover = item.find("cover").text
+                attribute = LinkAttribute(
+                    title=title,
+                    description=digest,
+                    url=url,
+                    image=cover
+                )
+                efb_msg = Message(
+                    attributes=attribute,
+                    type=MsgType.Link,
+                    text=result_text,
+                    vendor_specific={ "is_mp": True }
+                )
+                efb_msgs.append(efb_msg)
+
+    if efb_msgs == []:
+        efb_msg = Message(
+            type=MsgType.Text,
+            text=text
+        )
+        efb_msgs.append(efb_msg)
+
+    return tuple(efb_msgs)
 
 
-def efb_image_wrapper(file: IO, filename: str = None, text: str = None) -> Message:
+def efb_image_wrapper(file: IO, filename: str = None, text: str = None) -> Tuple[Message]:
     """
     A EFB message wrapper for images.
     :param file: The file handle
@@ -53,4 +128,4 @@ def efb_image_wrapper(file: IO, filename: str = None, text: str = None) -> Messa
 
     efb_msg.path = efb_msg.file.name
     efb_msg.mime = mime
-    return efb_msg
+    return (efb_msg,)

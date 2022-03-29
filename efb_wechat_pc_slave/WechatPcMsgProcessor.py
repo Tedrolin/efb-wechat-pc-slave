@@ -2,7 +2,7 @@ import base64
 import tempfile
 from urllib.request import urlopen
 
-from efb_wechat_pc_slave.MsgDecorator import efb_text_simple_wrapper, efb_image_wrapper
+from efb_wechat_pc_slave.MsgDecorator import efb_text_simple_wrapper, efb_image_wrapper, efb_msgType49_xml_wrapper
 
 
 class MsgProcessor:
@@ -22,3 +22,8 @@ class MsgProcessor:
             except Exception as e:
                 print(e)
         return efb_text_simple_wrapper("Image received. Please check it on your phone.")
+
+    
+    @staticmethod
+    def msgType49_xml_msg(msg: dict):
+        return efb_msgType49_xml_wrapper(msg['content'])
