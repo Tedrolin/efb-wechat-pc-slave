@@ -32,7 +32,8 @@ def efb_msgType49_xml_wrapper(text: str) -> Tuple[Message]:
     //appmsg/type = 5 : 链接（公众号文章）
     //appmsg/type = 17 : 位置共享
     //appmsg/type = 74 : 文件 (收到文件的第一个提示)
-    //appmsg/type = 6 : 文件 （内容长） 第二个提示，也有可能 msgType = 10000 【没有任何标识，无法判断是否与前面消息有关联】
+    //appmsg/type = 6 : 文件 （收到文件的第二个提示【文件下载完成】)，也有可能 msgType = 10000 【【提示文件有风险】没有任何有用标识，无法判断是否与前面哪条消息有关联】
+    //appmsg/type = 57 : 【感谢 @honus 提供】引用(回复)消息，未细致研究哪个参数是被引用的消息 id 
 
     :param text: The content of the message
     :return: EFB Message
@@ -47,39 +48,24 @@ def efb_msgType49_xml_wrapper(text: str) -> Tuple[Message]:
         if type == 5: # xml链接
             showtype = int(xml.xpath('/msg/appmsg/showtype/text()')[0])
             if showtype == 0: # 消息对话中的(测试的是从公众号转发给好友, 不排除其他情况)
-                sourceusername = xml.xpath('/msg/appmsg/sourceusername/text()')[0]
-                sourcedisplayname = xml.xpath('/msg/appmsg/sourcedisplayname/text()')[0]
-                result_text += f"\n转发自公众号【{sourcedisplayname}(id: {sourceusername})】\n\n"
+                title = url = des = thumburl = None # 初始化
+                try:
+                    title = xml.xpath('/msg/appmsg/title/text()')[0]
+                    url = xml.xpath('/msg/appmsg/url/text()')[0]
+                    des = xml.xpath('/msg/appmsg/des/text()')[0]
+                    thumburl = xml.xpath('/msg/appmsg/thumburl/text()')[0]
 
-                title = xml.xpath('/msg/appmsg/title/text()')[0]
-                url = xml.xpath('/msg/appmsg/url/text()')[0]
-                des = xml.xpath('/msg/appmsg/des/text()')[0]
-                thumburl = xml.xpath('/msg/appmsg/thumburl/text()')[0]
-                attribute = LinkAttribute(
-                    title=title,
-                    description=des,
-                    url=url,
-                    image=thumburl
-                )
-                efb_msg = Message(
-                    attributes=attribute,
-                    type=MsgType.Link,
-                    text=result_text,
-                    vendor_specific={ "is_mp": True }
-                )
-                efb_msgs.append(efb_msg)
-            elif showtype == 1: # 公众号发的推送
-                items = xml.xpath('//item')
-                for item in items:
-                    title = item.find("title").text
-                    url = item.find("url").text
-                    digest = item.find("digest").text
-                    cover = item.find("cover").text
+                    sourceusername = xml.xpath('/msg/appmsg/sourceusername/text()')[0]
+                    sourcedisplayname = xml.xpath('/msg/appmsg/sourcedisplayname/text()')[0]
+                    result_text += f"\n转发自公众号【{sourcedisplayname}(id: {sourceusername})】\n\n"
+                except Exception as e:
+                    print_exc()
+                if title is not None and url is not None:
                     attribute = LinkAttribute(
                         title=title,
-                        description=digest,
+                        description=des,
                         url=url,
-                        image=cover
+                        image=thumburl
                     )
                     efb_msg = Message(
                         attributes=attribute,
@@ -88,6 +74,31 @@ def efb_msgType49_xml_wrapper(text: str) -> Tuple[Message]:
                         vendor_specific={ "is_mp": True }
                     )
                     efb_msgs.append(efb_msg)
+            elif showtype == 1: # 公众号发的推送
+                items = xml.xpath('//item')
+                for item in items:
+                    title = url = digest = cover = None # 初始化
+                    try:
+                        title = item.find("title").text
+                        url = item.find("url").text
+                        digest = item.find("digest").text
+                        cover = item.find("cover").text
+                    except Exception as e:
+                        print_exc()
+                    if title is not None and url is not None:
+                        attribute = LinkAttribute(
+                            title=title,
+                            description=digest,
+                            url=url,
+                            image=cover
+                        )
+                        efb_msg = Message(
+                            attributes=attribute,
+                            type=MsgType.Link,
+                            text=result_text,
+                            vendor_specific={ "is_mp": True }
+                        )
+                        efb_msgs.append(efb_msg)
     except Exception as e:
         print_exc()
 
