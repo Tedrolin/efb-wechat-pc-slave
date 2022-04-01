@@ -239,8 +239,8 @@ class WechatPcChannel(SlaveChannel):
     def send_message(self, msg: 'Message') -> 'Message':
         chat_uid = msg.chat.uid
         # self.logger.debug(f"message.vendor_specific.get('is_mp', False): {msg.vendor_specific.get('is_mp', False)}")
-        if msg.vendor_specific is not None:
-            msg.chat.vendor_specific = msg.vendor_specific
+        if msg.vendor_specific.get('is_mp') is not None:
+            msg.chat.vendor_specific['is_mp'] = msg.vendor_specific.get('is_mp')
         
         if msg.edit:
             pass  # todo

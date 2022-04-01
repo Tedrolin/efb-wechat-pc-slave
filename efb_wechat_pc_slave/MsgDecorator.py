@@ -30,10 +30,10 @@ def efb_msgType49_xml_wrapper(text: str) -> Tuple[Message]:
     /msg/appmsg/type
     已知：
     //appmsg/type = 5 : 链接（公众号文章）
-    //appmsg/type = 17 : 位置共享
+    //appmsg/type = 17 : 实时位置共享
     //appmsg/type = 74 : 文件 (收到文件的第一个提示)
     //appmsg/type = 6 : 文件 （收到文件的第二个提示【文件下载完成】)，也有可能 msgType = 10000 【【提示文件有风险】没有任何有用标识，无法判断是否与前面哪条消息有关联】
-    //appmsg/type = 57 : 【感谢 @honus 提供】引用(回复)消息，未细致研究哪个参数是被引用的消息 id 
+    //appmsg/type = 57 : 【感谢 @honus 提供样本 xml】引用(回复)消息，未细致研究哪个参数是被引用的消息 id 
 
     :param text: The content of the message
     :return: EFB Message
@@ -99,6 +99,23 @@ def efb_msgType49_xml_wrapper(text: str) -> Tuple[Message]:
                             vendor_specific={ "is_mp": True }
                         )
                         efb_msgs.append(efb_msg)
+        elif type == 57: # 引用（回复）消息
+            msg = xml.xpath('/msg/appmsg/title/text()')[0]
+            refer_msgType = int(xml.xpath('/msg/appmsg/refermsg/type/text()')[0]) # 被引用消息类型
+            # refer_fromusr = xml.xpath('/msg/appmsg/refermsg/fromusr/text()')[0] # 被引用消息所在房间
+            # refer_fromusr = xml.xpath('/msg/appmsg/refermsg/chatusr/text()')[0] # 被引用消息发送人微信号
+            refer_displayname = xml.xpath('/msg/appmsg/refermsg/displayname/text()')[0] # 被引用消息发送人微信名称
+            refer_content = xml.xpath('/msg/appmsg/refermsg/content/text()')[0] # 被引用消息内容
+            if refer_msgType == 1: # 被引用的消息是文本
+                result_text += f"「{refer_displayname}:\n{refer_content}」\n\n{msg}"
+            else: # 被引用的消息非文本，提示不支持
+                result_text += f"「{refer_displayname}:\n系统消息：被引用的消息不是文本，暂不支持展示」\n\n{msg}"
+            efb_msg = Message(
+                type=MsgType.Text,
+                text=result_text,
+                vendor_specific={ "is_refer": True }
+            )
+            efb_msgs.append(efb_msg)
     except Exception as e:
         print_exc()
 
