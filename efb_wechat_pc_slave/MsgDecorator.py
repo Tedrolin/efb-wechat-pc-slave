@@ -85,7 +85,11 @@ def efb_msgType49_xml_wrapper(text: str) -> Tuple[Message]:
                         cover = item.find("cover").text
                     except Exception as e:
                         print_exc()
-                    if title is not None and url is not None:
+
+                    if title is None:
+                        continue
+
+                    if url:
                         attribute = LinkAttribute(
                             title=title,
                             description=digest,
@@ -99,6 +103,14 @@ def efb_msgType49_xml_wrapper(text: str) -> Tuple[Message]:
                             vendor_specific={ "is_mp": True }
                         )
                         efb_msgs.append(efb_msg)
+                    else:
+                        efb_msg = Message(
+                            type=MsgType.Text,
+                            text=title+"\n"+digest,
+                            vendor_specific={ "is_mp": True }
+                        )
+                        efb_msgs.append(efb_msg)
+
         elif type == 57: # 引用（回复）消息
             msg = xml.xpath('/msg/appmsg/title/text()')[0]
             refer_msgType = int(xml.xpath('/msg/appmsg/refermsg/type/text()')[0]) # 被引用消息类型
