@@ -33,6 +33,8 @@ from .utils import process_quote_text, download_file
 TYPE_HANDLERS = {
     1: MsgProcessor.text_msg,
     3: MsgProcessor.image_msg,
+    34: MsgProcessor.voice_msg,
+    47: MsgProcessor.emojipic_msg,
     49: MsgProcessor.msgType49_xml_msg
 }
 
