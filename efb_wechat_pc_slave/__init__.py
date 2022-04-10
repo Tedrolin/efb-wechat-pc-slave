@@ -41,7 +41,7 @@ TYPE_HANDLERS = {
 
 class WechatPcChannel(SlaveChannel):
     channel_name: str = "Wechat Pc Slave"
-    channel_emoji: str = "💬🖥️"
+    channel_emoji: str = "🖥️"
     channel_id = "tedrolin.wechatPc"
 
     wechatPc: WechatPc
