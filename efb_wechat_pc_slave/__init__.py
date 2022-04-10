@@ -35,6 +35,7 @@ TYPE_HANDLERS = {
     3: MsgProcessor.image_msg,
     34: MsgProcessor.voice_msg,
     47: MsgProcessor.emojipic_msg,
+    49: MsgProcessor.rich_msg,
 }
 
 
