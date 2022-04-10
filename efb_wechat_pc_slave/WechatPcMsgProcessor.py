@@ -86,6 +86,11 @@ class MsgProcessor:
     def voice_msg(msg: dict):
         return efb_text_simple_wrapper("您有一条语音消息，请在微信客户端查看")
 
+    # 视频消息提示
+    @staticmethod
+    def voice_msg(msg: dict):
+        return efb_text_simple_wrapper("您有一条视频消息，请在微信客户端查看")
+
     # 转换微信emoji
     @staticmethod
     def trans_emoji(msg: dict):
