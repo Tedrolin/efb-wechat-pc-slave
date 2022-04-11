@@ -111,6 +111,16 @@ def efb_msgType49_xml_wrapper(text: str) -> Tuple[Message]:
                         )
                         efb_msgs.append(efb_msg)
 
+        elif type == 74: # 发送了一个文件, 等待接收
+            pass
+        elif type == 6: # 发送了一个文件, 等待接收
+            title = xml.xpath('string(/msg/appmsg/title/text())')
+            efb_msg = Message(
+                type=MsgType.Text,
+                text=f"接收到一个文件\n文件名: {title}\n请到微信客户端查看",
+            )
+            efb_msgs.append(efb_msg)
+            
         elif type == 57: # 引用（回复）消息
             msg = xml.xpath('/msg/appmsg/title/text()')[0]
             refer_msgType = int(xml.xpath('/msg/appmsg/refermsg/type/text()')[0]) # 被引用消息类型
@@ -119,7 +129,7 @@ def efb_msgType49_xml_wrapper(text: str) -> Tuple[Message]:
             refer_displayname = xml.xpath('/msg/appmsg/refermsg/displayname/text()')[0] # 被引用消息发送人微信名称
             refer_content = xml.xpath('/msg/appmsg/refermsg/content/text()')[0] # 被引用消息内容
             if refer_msgType == 1: # 被引用的消息是文本
-                result_text += f"「{refer_displayname}:\n{refer_content}」\n\n{msg}"
+                result_text += f"「{refer_displayname}:\n{refer_content}」\n----------------\n{msg}"
             else: # 被引用的消息非文本，提示不支持
                 result_text += f"「{refer_displayname}:\n系统消息：被引用的消息不是文本，暂不支持展示」\n\n{msg}"
             efb_msg = Message(
@@ -128,10 +138,14 @@ def efb_msgType49_xml_wrapper(text: str) -> Tuple[Message]:
                 vendor_specific={ "is_refer": True }
             )
             efb_msgs.append(efb_msg)
+        else:
+            efb_msg = Message(
+                type=MsgType.Text,
+                text=text
+            )
+            efb_msgs.append(efb_msg)
     except Exception as e:
         print_exc()
-
-    if efb_msgs == []:
         efb_msg = Message(
             type=MsgType.Text,
             text=text

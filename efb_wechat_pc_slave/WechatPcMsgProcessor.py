@@ -1,6 +1,7 @@
 import re
 import html
 import tempfile
+from lxml import etree
 from urllib.request import urlopen
 
 from efb_wechat_pc_slave.MsgDecorator import efb_text_simple_wrapper, efb_image_wrapper, efb_msgType49_xml_wrapper
@@ -47,6 +48,17 @@ class MsgProcessor:
     @staticmethod
     def msgType49_xml_msg(msg: dict):
         return efb_msgType49_xml_wrapper(msg['content'])
+
+    # 邮件消息
+    @staticmethod
+    def mail_msg(msg: dict):
+        xml = etree.fromstring(msg['content'])
+        subject = xml.xpath('string(/msg/pushmail/content/subject/text())')
+        sender = xml.xpath('string(/msg/pushmail/content/sender/text())')
+        waplink = xml.xpath('string(/msg/pushmail/waplink/text())')
+        
+        text = f'发件人: {sender}\n标题：{subject}\n地址:{waplink}'
+        return efb_text_simple_wrapper(text)
 
     # 语音消息提示
     @staticmethod
