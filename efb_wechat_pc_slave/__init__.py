@@ -177,7 +177,7 @@ class WechatPcChannel(SlaveChannel):
                 efb_msg.chat = chat
                 efb_msg.deliver_to = coordinator.master
                 if msg.get('isOwner', 1) == 1:
-                    efb_msg.text = f"📲:\n{efb_msg.text}"
+                    efb_msg.text = f"🦚You🦚:\n\n{efb_msg.text}"
                 coordinator.send_message(efb_msg)
 
         async def cron_update_friends():
