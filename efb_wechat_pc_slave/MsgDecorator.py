@@ -80,6 +80,8 @@ def efb_msgType49_xml_wrapper(text: str) -> Tuple[Message]:
                     efb_msgs.append(efb_msg)
             elif showtype == 1:  # 公众号发的推送
                 items = xml.xpath('//item')
+
+                content = ""
                 for item in items:
                     title = url = digest = cover = None  # 初始化
                     try:
@@ -93,31 +95,39 @@ def efb_msgType49_xml_wrapper(text: str) -> Tuple[Message]:
                     if title is None:
                         continue
 
-                    if url:
-                        attribute = LinkAttribute(
-                            title=title,
-                            description=digest,
-                            url=url,
-                            image=cover
-                        )
-                        efb_msg = Message(
-                            attributes=attribute,
-                            type=MsgType.Link,
-                            text=result_text,
-                            vendor_specific={"is_mp": True}
-                        )
-                        efb_msgs.append(efb_msg)
-                    else:
-                        efb_msg = Message(
-                            type=MsgType.Text,
-                            text=title+"\n"+digest,
-                            vendor_specific={"is_mp": True}
-                        )
-                        efb_msgs.append(efb_msg)
+                    # if url:
+                    #     attribute = LinkAttribute(
+                    #         title=title,
+                    #         description=digest,
+                    #         url=url,
+                    #         image=cover
+                    #     )
+                    #     efb_msg = Message(
+                    #         attributes=attribute,
+                    #         type=MsgType.Link,
+                    #         text=result_text,
+                    #         vendor_specific={"is_mp": True}
+                    #     )
+                    #     efb_msgs.append(efb_msg)
+                    # else:
+                    #     efb_msg = Message(
+                    #         type=MsgType.Text,
+                    #         text=title+"\n"+digest,
+                    #         vendor_specific={"is_mp": True}
+                    #     )
+                    #     efb_msgs.append(efb_msg)
+                    content += f"{title}\n\{digest}\n{url}\n\n"
 
-        elif type == 74:    # 发送了一个文件, 等待接收
+                efb_msg = Message(
+                    type=MsgType.Text,
+                    text=content,
+                    vendor_specific={"is_mp": True}
+                )
+                efb_msgs.append(efb_msg)
+
+        elif type == 74:    # 收到文件的第一个提示
             pass
-        elif type == 6:     # 发送了一个文件, 等待接收
+        elif type == 6:     # 收到文件的第二个提示【文件下载完成】
             title = xml.xpath('string(/msg/appmsg/title/text())')
             efb_msg = Message(
                 type=MsgType.Text,
