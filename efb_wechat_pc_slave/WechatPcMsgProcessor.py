@@ -189,6 +189,7 @@ class MsgProcessor:
             "[鼓掌]": "👏",
             "[酷]": "😎",
             "[让我看看]": "🫣",
+            "[强]": "👍🏻",
         }
 
         for emoji_key in emojis:
