@@ -35,6 +35,7 @@ TYPE_HANDLERS = {
     3: MsgProcessor.image_msg,
     34: MsgProcessor.voice_msg,
     35: MsgProcessor.mail_msg,
+    43: MsgProcessor.voideo_msg,
     47: MsgProcessor.emojipic_msg,
     49: MsgProcessor.msgType49_xml_msg
 }
@@ -110,7 +111,7 @@ class WechatPcChannel(SlaveChannel):
                     total_page = total // 100 + 1
                 self.info_list['friend'] = msg['friendList']
                 self.process_friend_info()
-   
+
                 if str(total_page) == str(msg['page']):
                     self.update_friend_event.set()
             # self.async_update_friend_event.set()
@@ -170,7 +171,7 @@ class WechatPcChannel(SlaveChannel):
                 efb_msgs = TYPE_HANDLERS[msg['msgType']](msg)
             else:
                 efb_msgs = efb_text_simple_wrapper(msg['content'])
-            
+
             for efb_msg in efb_msgs:
                 efb_msg.author = author
                 efb_msg.chat = chat
@@ -244,7 +245,7 @@ class WechatPcChannel(SlaveChannel):
         # self.logger.debug(f"message.vendor_specific.get('is_mp', False): {msg.vendor_specific.get('is_mp', False)}")
         if msg.vendor_specific.get('is_mp') is not None:
             msg.chat.vendor_specific['is_mp'] = msg.vendor_specific.get('is_mp')
-        
+
         if msg.edit:
             pass  # todo
 

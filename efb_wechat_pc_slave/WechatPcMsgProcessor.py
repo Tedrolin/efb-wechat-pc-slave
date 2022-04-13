@@ -13,7 +13,7 @@ class MsgProcessor:
     def text_msg(msg: dict):
         msg = MsgProcessor.trans_emoji(msg)
         return efb_text_simple_wrapper(msg['content'])
-    
+
     # 自定义动画表情
     @staticmethod
     def emojipic_msg(msg: dict):
@@ -56,7 +56,7 @@ class MsgProcessor:
         subject = xml.xpath('string(/msg/pushmail/content/subject/text())')
         sender = xml.xpath('string(/msg/pushmail/content/sender/text())')
         waplink = xml.xpath('string(/msg/pushmail/waplink/text())')
-        
+
         text = f'发件人: {sender}\n标题：{subject}\n地址:{waplink}'
         return efb_text_simple_wrapper(text)
 
@@ -67,7 +67,7 @@ class MsgProcessor:
 
     # 视频消息提示
     @staticmethod
-    def voice_msg(msg: dict):
+    def voideo_msg(msg: dict):
         return efb_text_simple_wrapper("您有一条视频消息，请在微信客户端查看")
 
     # 转换微信emoji
@@ -80,7 +80,7 @@ class MsgProcessor:
             "[亲亲]": "😚",
             "[便便]": "💩",
             "[偷笑]": "🤭",
-            "[傲慢]": "😕",
+            "[傲慢]": "😤",
             "[再见]": "👋",
             "[冷汗]": "😰",
             "[凋谢]": "🥀",
@@ -187,6 +187,8 @@ class MsgProcessor:
             "[骷髅]": "💀",
             "[鬼魂]": "👻",
             "[鼓掌]": "👏",
+            "[酷]": "😎",
+            "[让我看看]": "🫣",
         }
 
         for emoji_key in emojis:
