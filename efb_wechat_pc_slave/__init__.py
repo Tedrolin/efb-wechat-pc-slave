@@ -141,8 +141,8 @@ class WechatPcChannel(SlaveChannel):
         async def on_msg_receive(msg: dict):
             if 'wxid' not in msg:
                 return
-            if msg.get('isOwner', 1) == 1:
-                return
+            # if msg.get('isOwner', 1) == 1:
+            #     return
             username = await self.async_get_friend_info('nickname', msg['wxid'])
             remark_name = await self.async_get_friend_info('remark', msg['wxid'])
             chat = None
@@ -176,6 +176,8 @@ class WechatPcChannel(SlaveChannel):
                 efb_msg.author = author
                 efb_msg.chat = chat
                 efb_msg.deliver_to = coordinator.master
+                if msg.get('isOwner', 1) == 1:
+                    efb_msg.text = f"📲:\n{efb_msg.text}"
                 coordinator.send_message(efb_msg)
 
         async def cron_update_friends():
