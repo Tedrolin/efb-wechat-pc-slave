@@ -5,8 +5,7 @@ from traceback import print_exc
 
 from ehforwarderbot import MsgType, Chat
 from ehforwarderbot.chat import ChatMember
-from ehforwarderbot.message import Substitutions, Message, LinkAttribute
-
+from ehforwarderbot.message import Substitutions, Message, LinkAttribute, LocationAttribute
 
 def efb_text_simple_wrapper(text: str, ats: Union[Mapping[Tuple[int, int], Union[Chat, ChatMember]], None] = None) -> Tuple[Message]:
     """
@@ -208,4 +207,26 @@ def efb_image_wrapper(file: IO, filename: str = None, text: str = None) -> Tuple
 
     efb_msg.path = efb_msg.file.name
     efb_msg.mime = mime
+    return (efb_msg,)
+
+
+# 位置消息
+def efb_location_wrapper(latitude: float, longitude: float, text: None):
+    """
+    A EFB message wrapper for images.
+    :param latitude: latitude
+    :param longitude: longitude
+    :param text: The attached text
+    :return: EFB Message
+    """
+    attribute = LocationAttribute(
+        latitude=latitude,
+        longitude=longitude,
+    )
+    efb_msg = Message(
+        attributes=attribute,
+        type=MsgType.Location,
+        text=text,
+    )
+
     return (efb_msg,)

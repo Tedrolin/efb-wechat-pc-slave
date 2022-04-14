@@ -4,7 +4,7 @@ import tempfile
 from lxml import etree
 from urllib.request import urlopen
 
-from efb_wechat_pc_slave.MsgDecorator import efb_text_simple_wrapper, efb_image_wrapper, efb_msgType49_xml_wrapper
+from efb_wechat_pc_slave.MsgDecorator import efb_text_simple_wrapper, efb_image_wrapper, efb_msgType49_xml_wrapper, efb_location_wrapper
 
 
 class MsgProcessor:
@@ -69,6 +69,16 @@ class MsgProcessor:
     @staticmethod
     def voideo_msg(msg: dict):
         return efb_text_simple_wrapper("您有一条视频消息，请在微信客户端查看")
+
+    # 位置消息
+    @staticmethod
+    def location_msg(msg: dict):
+        xml = etree.fromstring(msg['content'])
+        latitude = xml.xpath('string(/msg/location1/@x)')
+        longitude = xml.xpath('string(/msg/location/@y)')
+        text = xml.xpath('string(/msg/location/@poiname)')
+
+        return efb_location_wrapper(latitude, longitude, text)
 
     # 转换微信emoji
     @staticmethod

@@ -37,6 +37,7 @@ TYPE_HANDLERS = {
     35: MsgProcessor.mail_msg,
     43: MsgProcessor.voideo_msg,
     47: MsgProcessor.emojipic_msg,
+    48: MsgProcessor.location_msg,
     49: MsgProcessor.msgType49_xml_msg
 }
 
