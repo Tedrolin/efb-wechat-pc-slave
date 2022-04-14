@@ -116,7 +116,7 @@ def efb_msgType49_xml_wrapper(text: str) -> Tuple[Message]:
                     #         vendor_specific={"is_mp": True}
                     #     )
                     #     efb_msgs.append(efb_msg)
-                    content += f"{title}\n\{digest}\n{url}\n\n"
+                    content += f"{title}\n{digest}\n{url}\n\n"
 
                 efb_msg = Message(
                     type=MsgType.Text,
