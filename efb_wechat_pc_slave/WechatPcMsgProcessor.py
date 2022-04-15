@@ -74,11 +74,14 @@ class MsgProcessor:
     @staticmethod
     def location_msg(msg: dict):
         xml = etree.fromstring(msg['content'])
-        latitude = xml.xpath('string(/msg/location1/@x)')
+        latitude = xml.xpath('string(/msg/location/@x)')
         longitude = xml.xpath('string(/msg/location/@y)')
         text = xml.xpath('string(/msg/location/@poiname)')
 
-        return efb_location_wrapper(latitude, longitude, text)
+        if latitude == "" or longitude == "":
+            return efb_text_simple_wrapper("📌位置获取失败，请在微信客户端查看")
+
+        return efb_location_wrapper(float(latitude), float(longitude), text)
 
     # 转换微信emoji
     @staticmethod
