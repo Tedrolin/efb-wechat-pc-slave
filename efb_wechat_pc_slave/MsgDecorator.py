@@ -127,12 +127,12 @@ def efb_msgType49_xml_wrapper(text: str) -> Tuple[Message]:
                         content += f"\n\n"
 
                 efb_msg = Message(
-                    type="Markdown",
+                    type=MsgType.Text,
+                    mime="Markdown",
                     text=content,
                     vendor_specific={"is_mp": True}
                 )
                 efb_msgs.append(efb_msg)
-
         elif type == 74:    # 收到文件的第一个提示
             pass
         elif type == 6:     # 收到文件的第二个提示【文件下载完成】
@@ -148,7 +148,6 @@ def efb_msgType49_xml_wrapper(text: str) -> Tuple[Message]:
                 text=f"接收到一个不支持的表情\n请到微信客户端查看",
             )
             efb_msgs.append(efb_msg)
-
         elif type == 21:     # 微信运动点赞
             title = xml.xpath('string(/msg/appmsg/title/text())')
             efb_msg = Message(
