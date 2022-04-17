@@ -99,8 +99,6 @@ def efb_msgType49_xml_wrapper(text: str) -> Tuple[Message]:
 
                     if title:
                         title = re.sub(r'([\\_*\[\]\(\)~`>#+-=\|{}.!])', r'\\\1', title)
-                    if digest:
-                        digest = re.sub(r'([\\_*\[\]\(\)~`>#+-=\|{}.!])', r'\\\1', digest)
 
                     if cover:
                         cover = urllib.parse.quote(cover or "", safe="?=&#:/")
@@ -108,9 +106,13 @@ def efb_msgType49_xml_wrapper(text: str) -> Tuple[Message]:
 
                     if url:
                         url = urllib.parse.quote(url or "", safe="?=&#:/")
-                        content += f"[{title}]({url})\n_{digest}"
+                        content += f"[{title}]({url})"
                     else:
-                        content += f"{title}\n_{digest}"
+                        content += f"{title}"
+                    
+                    if digest:
+                        digest = re.sub(r'([\\_*\[\]\(\)~`>#+-=\|{}.!])', r'\\\1', digest)
+                        content += f"\n_{digest}"
 
                     content += f"\n\n"
 
