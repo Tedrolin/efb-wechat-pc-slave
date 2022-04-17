@@ -1,5 +1,6 @@
 from typing import Mapping, Tuple, Union, IO
 import magic
+import re
 import urllib.parse
 from lxml import etree
 from traceback import print_exc
@@ -96,37 +97,20 @@ def efb_msgType49_xml_wrapper(text: str) -> Tuple[Message]:
                     if title is None:
                         continue
 
-                    # if url:
-                    #     attribute = LinkAttribute(
-                    #         title=title,
-                    #         description=digest,
-                    #         url=url,
-                    #         image=cover
-                    #     )
-                    #     efb_msg = Message(
-                    #         attributes=attribute,
-                    #         type=MsgType.Link,
-                    #         text=result_text,
-                    #         vendor_specific={"is_mp": True}
-                    #     )
-                    #     efb_msgs.append(efb_msg)
-                    # else:
-                    #     efb_msg = Message(
-                    #         type=MsgType.Text,
-                    #         text=title+"\n"+digest,
-                    #         vendor_specific={"is_mp": True}
-                    #     )
-                    #     efb_msgs.append(efb_msg)
+                    if title:
+                        title = re.sub(r'([\\_*\[\]\(\)~`>#+-=\|{}.!])', r'\\\1', title)
+                    if digest:
+                        digest = re.sub(r'([\\_*\[\]\(\)~`>#+-=\|{}.!])', r'\\\1', digest)
+
                     if cover:
                         cover = urllib.parse.quote(cover or "", safe="?=&#:/")
-                        content += f"[🏞]({cover})\n"
-                        
+                        content += f"[🏞]({cover}) "
 
                     if url:
                         url = urllib.parse.quote(url or "", safe="?=&#:/")
-                        content += f"[{title}]({url})\n{digest}"
+                        content += f"[{title}]({url})\n_{digest}"
                     else:
-                        content += f"[{title}]\n{digest}"
+                        content += f"{title}\n_{digest}"
 
                     content += f"\n\n"
 
