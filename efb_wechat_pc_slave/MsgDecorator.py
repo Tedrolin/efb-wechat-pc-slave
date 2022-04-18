@@ -32,12 +32,13 @@ def efb_msgType49_xml_wrapper(text: str) -> Tuple[Message]:
     /msg/appmsg/type
     已知：
     //appmsg/type = 5   : 链接（公众号文章）
-    //appmsg/type = 17  : 实时位置共享
-    //appmsg/type = 21  : 微信运动点赞
-    //appmsg/type = 74  : 文件 (收到文件的第一个提示)
     //appmsg/type = 6   : 文件 （收到文件的第二个提示【文件下载完成】)，也有可能 msgType = 10000 【【提示文件有风险】没有任何有用标识，无法判断是否与前面哪条消息有关联】
     //appmsg/type = 8   : 搜狗表情，暂时不支持发送
+    //appmsg/type = 17  : 实时位置共享
+    //appmsg/type = 21  : 微信运动点赞
+    //appmsg/type = 33  : 微信小程序
     //appmsg/type = 57  : 【感谢 @honus 提供样本 xml】引用(回复)消息，未细致研究哪个参数是被引用的消息 id
+    //appmsg/type = 74  : 文件 (收到文件的第一个提示)
 
     :param text: The content of the message
     :return: EFB Message
@@ -123,8 +124,6 @@ def efb_msgType49_xml_wrapper(text: str) -> Tuple[Message]:
                     vendor_specific={"is_mp": True}
                 )
                 efb_msgs.append(efb_msg)
-        elif type == 74:    # 收到文件的第一个提示
-            pass
         elif type == 6:     # 收到文件的第二个提示【文件下载完成】
             title = xml.xpath('string(/msg/appmsg/title/text())')
             efb_msg = Message(
@@ -138,12 +137,33 @@ def efb_msgType49_xml_wrapper(text: str) -> Tuple[Message]:
                 text=f"接收到一个不支持的表情\n请到微信客户端查看",
             )
             efb_msgs.append(efb_msg)
-        elif type == 21:     # 微信运动点赞
+        elif type == 21:    # 微信运动点赞
             title = xml.xpath('string(/msg/appmsg/title/text())')
             efb_msg = Message(
                 type=MsgType.Text,
                 text=f"🏃{title}",
             )
+            efb_msgs.append(efb_msg)
+        elif type == 33:    # 微信小程序
+            weappname = xml.xpath('string(/msg/appmsg/des/text())')
+            title = xml.xpath('string(/msg/appmsg/title/text())')
+            weappicon = xml.xpath('string(/msg/appmsg/weappinfo/weappiconurl/text())')
+            pagepath = xml.xpath('string(/msg/appmsg/weappinfo/pagepath/text())')
+            username = xml.xpath('string(/msg/appmsg/weappinfo/username/text())')
+            appid = xml.xpath('string(/msg/appmsg/weappinfo/appid/text())')
+
+            content = ""
+            if weappicon:
+                weappicon = urllib.parse.quote(weappicon or "", safe="?=&#:/")
+                content += f"[🏞]({weappicon}) "
+            content += f"{weappname}\n{title}\nappid: {appid}\nusername: {username}\npath: {pagepath}"
+            
+            efb_msg = Message(
+                    type=MsgType.Text,
+                    mime="Markdown",
+                    text=content,
+                    vendor_specific={"is_mp": True}
+                )
             efb_msgs.append(efb_msg)
         elif type == 57:    # 引用（回复）消息
             msg = xml.xpath('/msg/appmsg/title/text()')[0]
@@ -165,6 +185,8 @@ def efb_msgType49_xml_wrapper(text: str) -> Tuple[Message]:
                 vendor_specific={"is_refer": True}
             )
             efb_msgs.append(efb_msg)
+        elif type == 74:    # 收到文件的第一个提示
+            pass
         else:
             efb_msg = Message(
                 type=MsgType.Text,
