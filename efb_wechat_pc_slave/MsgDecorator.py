@@ -1,7 +1,9 @@
 from typing import Mapping, Tuple, Union, IO
 import magic
 import re
+import tempfile
 import urllib.parse
+from urllib.request import urlopen
 from lxml import etree
 from traceback import print_exc
 
@@ -152,18 +154,16 @@ def efb_msgType49_xml_wrapper(text: str) -> Tuple[Message]:
             username = xml.xpath('string(/msg/appmsg/weappinfo/username/text())')
             appid = xml.xpath('string(/msg/appmsg/weappinfo/appid/text())')
 
-            content = ""
-            if weappicon:
-                weappicon = urllib.parse.quote(weappicon or "", safe="?=&#:/")
-                content += f"[🏞]({weappicon}) "
-            content += f"{weappname}\n{title}\nappid: {appid}\nusername: {username}\npath: {pagepath}"
-            
-            efb_msg = Message(
-                    type=MsgType.Text,
-                    mime="Markdown",
-                    text=content,
-                    vendor_specific={"is_mp": True}
-                )
+            try:
+                text = f"小程序: {weappname}\n分享: {title}\n\nAppid: {appid}\nUsername: {username}\nPath: {pagepath}"
+                file = tempfile.NamedTemporaryFile()
+                with urlopen(weappicon) as response:
+                    data = response.read()
+                    file.write(data)
+                efb_msg = efb_image_wrapper(file, weappname, text)[0]
+            except Exception as e:
+                print(e)
+                
             efb_msgs.append(efb_msg)
         elif type == 57:    # 引用（回复）消息
             msg = xml.xpath('/msg/appmsg/title/text()')[0]
