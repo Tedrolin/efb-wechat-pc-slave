@@ -60,6 +60,24 @@ class MsgProcessor:
         text = f'发件人: {sender}\n标题：{subject}\n地址:{waplink}'
         return efb_text_simple_wrapper(text)
 
+    # 公众号推荐
+    @staticmethod
+    def mp_card_msg(msg: dict):
+        xml = etree.fromstring(msg['content'])
+        headimgurl = xml.xpath('string(/msg/@smallheadimgurl)')
+        nickname = xml.xpath('string(/msg/@nickname)')
+        certinfo = xml.xpath('string(/msg/@certinfo)')
+
+        try:
+            text = f"\n 公众号: {nickname}\n简介: {certinfo}"
+            file = tempfile.NamedTemporaryFile()
+            with urlopen(headimgurl) as response:
+                data = response.read()
+                file.write(data)
+            return efb_image_wrapper(file, nickname, text)
+        except Exception as e:
+            print(e)
+
     # 语音消息提示
     @staticmethod
     def voice_msg(msg: dict):
