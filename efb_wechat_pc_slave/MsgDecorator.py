@@ -1,6 +1,6 @@
 from typing import Mapping, Tuple, Union, IO
 import magic
-import re
+import html
 import tempfile
 import urllib.parse
 from urllib.request import urlopen
@@ -86,46 +86,53 @@ def efb_msgType49_xml_wrapper(text: str) -> Tuple[Message]:
             elif showtype == 1:  # 公众号发的推送
                 items = xml.xpath('//item')
 
+                cover = None
                 content = ""
                 for item in items:
-                    title = url = digest = cover = None  # 初始化
+                    title = url = digest = None  # 初始化
                     try:
                         title = item.find("title").text
                         url = item.find("url").text
                         digest = item.find("digest").text
-                        cover = item.find("cover").text
+                        if cover is None:
+                            cover = item.find("cover").text
                     except Exception as e:
                         print_exc()
+                        continue
 
                     if title is None:
                         continue
 
                     if title:
-                        title = re.sub(r'([\_\*\[\]\~\`\>\#\+\-\=\|\{\}\.\!\\])', r'\\\1', title)
-
-                    if cover:
-                        cover = urllib.parse.quote(cover or "", safe="?=&#:/")
-                        content += f"[🏞]({cover}) "
+                        title = html.escape(title)
 
                     if url:
                         url = urllib.parse.quote(url or "", safe="?=&#:/")
-                        content += f"[{title}]({url})"
+                        content += f'<a href="{url}">{title}</a>'
                     else:
                         content += f"{title}"
                     
                     if digest:
-                        # digest = re.sub(r'([\_\*\[\]\~\`\>\#\+\-\=\|\{\}\.\!\\])', r'\\\1', digest)
                         content += f"\n{digest}"
 
                     content += f"\n\n"
 
-                efb_msg = Message(
-                    type=MsgType.Text,
-                    mime="Markdown",
-                    text=content,
-                    vendor_specific={"is_mp": True}
-                )
+                try:
+                    if cover:
+                        cover = cover.replace('\n', '')
+
+                    content = f"\n{content}"
+                    file = tempfile.NamedTemporaryFile()
+                    with urlopen(cover) as response:
+                        data = response.read()
+                        file.write(data)
+                    efb_msg = efb_image_wrapper(file, weappname, content)[0]
+                except Exception as e:
+                    efb_msg = efb_text_simple_wrapper(content)
+                    print(e)
+                    
                 efb_msgs.append(efb_msg)
+                
         elif type == 6:     # 收到文件的第二个提示【文件下载完成】
             title = xml.xpath('string(/msg/appmsg/title/text())')
             efb_msg = Message(

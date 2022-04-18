@@ -184,7 +184,7 @@ class WechatPcChannel(SlaveChannel):
 
         async def cron_update_friends():
             while True:
-                await asyncio.sleep(60 * 10)
+                await asyncio.sleep(60 * 21.1)
                 self.logger.debug("Start updating friends")
                 await self.client.get_friend_list()
 
