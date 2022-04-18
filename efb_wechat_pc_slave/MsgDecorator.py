@@ -120,6 +120,8 @@ def efb_msgType49_xml_wrapper(text: str) -> Tuple[Message]:
                 try:
                     if cover:
                         cover = cover.replace('\n', '')
+                    else:
+                        cover = 'https://cdn.qimai.cn/duoduo/202204/2b1146bb90c0a9dc8a7a864449a3afe4.jpeg'
 
                     content = f"\n{content}"
                     file = tempfile.NamedTemporaryFile()
