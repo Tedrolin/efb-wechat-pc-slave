@@ -112,9 +112,9 @@ def efb_msgType49_xml_wrapper(text: str) -> Tuple[Message]:
                     else:
                         content += f"{title}"
                     
-                    if digest:
-                        digest = html.escape(digest)
-                        content += f"\n{digest}"
+                    # if digest:
+                    #     digest = html.escape(digest)
+                    #     content += f"\n{digest}"
 
                     content += f"\n\n"
 
