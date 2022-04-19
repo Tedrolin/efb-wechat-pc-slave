@@ -3,6 +3,7 @@ import logging
 import queue
 import threading
 import uuid
+import html
 from traceback import print_exc
 
 import yaml
@@ -172,7 +173,7 @@ class WechatPcChannel(SlaveChannel):
             if 'msgType' in msg and msg['msgType'] in TYPE_HANDLERS:
                 efb_msgs = TYPE_HANDLERS[msg['msgType']](msg)
             else:
-                efb_msgs = efb_text_simple_wrapper(msg['content'])
+                efb_msgs = efb_text_simple_wrapper(html.escape(msg['content']))
 
             for efb_msg in efb_msgs:
                 efb_msg.author = author

@@ -113,6 +113,7 @@ def efb_msgType49_xml_wrapper(text: str) -> Tuple[Message]:
                         content += f"{title}"
                     
                     if digest:
+                        digest = html.escape(digest)
                         content += f"\n{digest}"
 
                     content += f"\n\n"
@@ -120,17 +121,18 @@ def efb_msgType49_xml_wrapper(text: str) -> Tuple[Message]:
                 try:
                     if cover:
                         cover = cover.replace('\n', '')
+                        
+                        content = f"\n{content}"
+                        file = tempfile.NamedTemporaryFile()
+                        with urlopen(cover) as response:
+                            data = response.read()
+                            file.write(data)
+                        efb_msg = efb_image_wrapper(file, "", content)[0]
                     else:
-                        cover = 'https://cdn.qimai.cn/duoduo/202204/2b1146bb90c0a9dc8a7a864449a3afe4.jpeg'
-
-                    content = f"\n{content}"
-                    file = tempfile.NamedTemporaryFile()
-                    with urlopen(cover) as response:
-                        data = response.read()
-                        file.write(data)
-                    efb_msg = efb_image_wrapper(file, "", content)[0]
+                        efb_msg = efb_text_simple_wrapper(content)
+                    
                 except Exception as e:
-                    efb_msg = efb_text_simple_wrapper(content)
+                    
                     print(e)
                     
                 efb_msgs.append(efb_msg)

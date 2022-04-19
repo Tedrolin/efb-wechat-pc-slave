@@ -12,7 +12,7 @@ class MsgProcessor:
     @staticmethod
     def text_msg(msg: dict):
         msg = MsgProcessor.trans_emoji(msg)
-        return efb_text_simple_wrapper(msg['content'])
+        return efb_text_simple_wrapper(html.escape(msg['content']))
 
     # 自定义动画表情
     @staticmethod
