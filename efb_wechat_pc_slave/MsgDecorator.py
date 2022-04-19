@@ -129,7 +129,7 @@ def efb_msgType49_xml_wrapper(text: str) -> Tuple[Message]:
                             file.write(data)
                         efb_msg = efb_image_wrapper(file, "", content)[0]
                     else:
-                        efb_msg = efb_text_simple_wrapper(content)
+                        efb_msg = efb_text_simple_wrapper(content)[0]
                     
                 except Exception as e:
                     
