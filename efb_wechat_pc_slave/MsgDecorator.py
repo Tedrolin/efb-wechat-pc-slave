@@ -40,6 +40,7 @@ def efb_msgType49_xml_wrapper(text: str) -> Tuple[Message]:
     //appmsg/type = 21  : 微信运动点赞
     //appmsg/type = 33  : 微信小程序
     //appmsg/type = 57  : 【感谢 @honus 提供样本 xml】引用(回复)消息，未细致研究哪个参数是被引用的消息 id
+    //appmsg/type = 63  : 直播卡片
     //appmsg/type = 74  : 文件 (收到文件的第一个提示)
 
     :param text: The content of the message
@@ -196,6 +197,23 @@ def efb_msgType49_xml_wrapper(text: str) -> Tuple[Message]:
                 vendor_specific={"is_refer": True}
             )
             efb_msgs.append(efb_msg)
+        elif type == 63:    # 直播卡片
+            nickname = xml.xpath('string(/msg/appmsg/finderLive/nickname/text())')
+            title = xml.xpath('string(/msg/appmsg/finderLive/desc/text())')
+            cover = xml.xpath('string(/msg/appmsg/finderLive/media/coverUrl/text())')
+            liveId = xml.xpath('string(/msg/appmsg/finderLive/finderLiveID/text())')
+
+            try:
+                text = f"视频号: {nickname}\n内容: {title}\nliveId: {liveId}"
+                file = tempfile.NamedTemporaryFile()
+                with urlopen(cover) as response:
+                    data = response.read()
+                    file.write(data)
+                efb_msg = efb_image_wrapper(file, weappname, text)[0]
+            except Exception as e:
+                print(e)
+                
+            efb_msgs.append(efb_msg)
         elif type == 74:    # 收到文件的第一个提示
             pass
         else:
@@ -247,7 +265,6 @@ def efb_image_wrapper(file: IO, filename: str = None, text: str = None) -> Tuple
     efb_msg.path = efb_msg.file.name
     efb_msg.mime = mime
     return (efb_msg,)
-
 
 # 位置消息
 def efb_location_wrapper(latitude: float, longitude: float, text: None) -> Tuple[Message]:
