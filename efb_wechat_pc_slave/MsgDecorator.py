@@ -1,4 +1,5 @@
 from typing import Mapping, Tuple, Union, IO
+import re
 import magic
 import html
 import tempfile
@@ -124,6 +125,9 @@ def efb_msgType49_xml_wrapper(text: str) -> Tuple[Message]:
                         cover = cover.replace('\n', '')
                         
                         content = f"\n{content}"
+                        if len(content) >= 800:
+                            content = re.sub(r'chksm=(.*?)#', '', content)
+
                         file = tempfile.NamedTemporaryFile()
                         with urlopen(cover) as response:
                             data = response.read()
@@ -131,13 +135,10 @@ def efb_msgType49_xml_wrapper(text: str) -> Tuple[Message]:
                         efb_msg = efb_image_wrapper(file, "", content)[0]
                     else:
                         efb_msg = efb_text_simple_wrapper(content)[0]
-                    
                 except Exception as e:
-                    
                     print(e)
                     
                 efb_msgs.append(efb_msg)
-                
         elif type == 6:     # 收到文件的第二个提示【文件下载完成】
             title = xml.xpath('string(/msg/appmsg/title/text())')
             efb_msg = Message(
