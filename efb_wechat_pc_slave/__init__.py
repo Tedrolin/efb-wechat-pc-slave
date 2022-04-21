@@ -4,7 +4,9 @@ import queue
 import threading
 import uuid
 import html
+import tempfile
 from traceback import print_exc
+from urllib.request import urlopen
 
 import yaml
 import hashlib
@@ -27,7 +29,7 @@ from cachetools import TTLCache
 
 from .ChatMgr import ChatMgr
 from .CustomTypes import EFBGroupChat, EFBPrivateChat, EFBGroupMember
-from .MsgDecorator import efb_text_simple_wrapper
+from .MsgDecorator import efb_text_simple_wrapper, efb_image_wrapper
 from .WechatPcMsgProcessor import MsgProcessor
 from .utils import process_quote_text, download_file
 
@@ -48,6 +50,8 @@ class WechatPcChannel(SlaveChannel):
     channel_name: str = "Wechat Pc Slave"
     channel_emoji: str = "🖥️"
     channel_id = "tedrolin.wechatPc"
+
+    last_qr_url = ""
 
     wechatPc: WechatPc
     client: WechatPcClient
@@ -128,6 +132,29 @@ class WechatPcChannel(SlaveChannel):
                              f"{msg['loginQrcode']}\n" \
                              "and then scan it with your Wechat Client"
                 self.logger.log(99, qr)
+
+                if last_qr_url != msg['loginQrcode']:
+                    last_qr_url = msg['loginQrcode']
+
+                    try:
+                        file = tempfile.NamedTemporaryFile()
+                        with urlopen('data: image/png; base64,'+qr_obj.png_as_base64_str(scale=1)) as response:
+                            data = response.read()
+                            file.write(data)
+                                                
+                        chat = ChatMgr.build_efb_chat_as_private(EFBPrivateChat(
+                            uid='filehelper',
+                            name='文件传输助手',
+                            ))
+                        author = chat.other
+                        efb_msg = efb_image_wrapper(file)[0]
+                        efb_msg.author = author
+                        efb_msg.chat = chat
+                        efb_msg.deliver_to = coordinator.master
+                        efb_msg.text = "\n\nWechat Login Qrcode\n\n"
+                        coordinator.send_message(efb_msg)
+                    except Exception as e:
+                        print(e)
 
         @self.client.add_handler(OPCODE_WECHAT_GET_LOGIN_STATUS)
         async def on_login_status_change(msg: dict):
