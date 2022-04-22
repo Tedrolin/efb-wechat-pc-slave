@@ -38,8 +38,10 @@ def efb_msgType49_xml_wrapper(text: str) -> Tuple[Message]:
     //appmsg/type = 6   : 文件 （收到文件的第二个提示【文件下载完成】)，也有可能 msgType = 10000 【【提示文件有风险】没有任何有用标识，无法判断是否与前面哪条消息有关联】
     //appmsg/type = 8   : 搜狗表情，暂时不支持发送
     //appmsg/type = 17  : 实时位置共享
+    //appmsg/type = 19  : 转发聊天记录
     //appmsg/type = 21  : 微信运动点赞
     //appmsg/type = 33  : 微信小程序
+    //appmsg/type = 51  : 当前微信版本不支持展示该内容，请升级至最新版本。
     //appmsg/type = 57  : 【感谢 @honus 提供样本 xml】引用(回复)消息，未细致研究哪个参数是被引用的消息 id
     //appmsg/type = 63  : 直播卡片
     //appmsg/type = 74  : 文件 (收到文件的第一个提示)
@@ -177,6 +179,29 @@ def efb_msgType49_xml_wrapper(text: str) -> Tuple[Message]:
             except Exception as e:
                 print(e)
                 
+            efb_msgs.append(efb_msg)
+        elif type == 51:    # 当前微信版本不支持展示该内容，请升级至最新版本。
+            title = xml.xpath('string(/msg/appmsg/title/text())')
+
+            nickname = xml.xpath('string(/msg/appmsg/finderFeed/nickname/text())')
+            desc = xml.xpath('string(/msg/appmsg/finderFeed/desc/text())')
+            cover = xml.xpath('string(/msg/appmsg/finderFeed/mediaList/media/coverUrl/text())')
+            
+            if cover:
+                try:
+                    text = f"视频号: {nickname}\n内容: {desc}\n"
+                    file = tempfile.NamedTemporaryFile()
+                    with urlopen(cover) as response:
+                        data = response.read()
+                        file.write(data)
+                    efb_msg = efb_image_wrapper(file, weappname, text)[0]
+                except Exception as e:
+                    print(e)
+            else:
+                efb_msg = Message(
+                    type=MsgType.Text,
+                    text=title
+                )
             efb_msgs.append(efb_msg)
         elif type == 57:    # 引用（回复）消息
             msg = xml.xpath('/msg/appmsg/title/text()')[0]
