@@ -134,8 +134,12 @@ class WechatPcChannel(SlaveChannel):
                 self.logger.log(99, qr)
 
                 if last_qr_url != msg['loginQrcode']:
+                    if coordinator.master is None:
+                        self.logger.info("Master Channerl Is Not Ready")
+                        await asyncio.sleep(5)
+                        return
+                    
                     last_qr_url = msg['loginQrcode']
-
                     try:
                         file = tempfile.NamedTemporaryFile()
                         with urlopen('data: image/png; base64,'+qr_obj.png_as_base64_str(scale=1)) as response:
