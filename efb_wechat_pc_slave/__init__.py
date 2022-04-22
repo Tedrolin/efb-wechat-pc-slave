@@ -32,6 +32,7 @@ from .CustomTypes import EFBGroupChat, EFBPrivateChat, EFBGroupMember
 from .MsgDecorator import efb_text_simple_wrapper, efb_image_wrapper
 from .WechatPcMsgProcessor import MsgProcessor
 from .utils import process_quote_text, download_file
+from .WechatWork import WechatWork
 
 TYPE_HANDLERS = {
     1: MsgProcessor.text_msg,
@@ -135,6 +136,18 @@ class WechatPcChannel(SlaveChannel):
 
                 if self.last_qr_url != msg['loginQrcode']:
                     self.last_qr_url = msg['loginQrcode']
+
+                    try: 
+                        self.logger.log(99, "Send Wechat Work Message")
+                        if 'WECHAT_WORK' in self.config:
+                            file = tempfile.NamedTemporaryFile()
+                            qr_obj.png(file.name, scale=5)
+                            res = WechatWork(self.config['WECHAT_WORK']).send_image_message(file)
+                        
+                            self.logger.log(99, "Send Wechat Work Message "+res.get("errmsg"))
+                    except:
+                        self.logger.log(99, "Send Wechat Work Message Except.")
+                        print_exc()
 
         @self.client.add_handler(OPCODE_WECHAT_GET_LOGIN_STATUS)
         async def on_login_status_change(msg: dict):
