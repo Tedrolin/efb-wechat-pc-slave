@@ -125,36 +125,40 @@ class WechatPcChannel(SlaveChannel):
 
         @self.client.add_handler(OPCODE_WECHAT_QRCODE)
         async def on_qr_code(msg: dict):
-            if 'loginQrcode' in msg:
+            if 'loginQrcode' in msg and self.last_qr_url != msg['loginQrcode']:
+                self.last_qr_url = msg['loginQrcode']
+
                 qr_obj = QRCode(msg['loginQrcode'])
                 qr = qr_obj.terminal()
                 qr += "\n" + "If the QR code was not shown correctly, please generate the qrcode for the link\n" \
                              f"{msg['loginQrcode']}\n" \
                              "and then scan it with your Wechat Client"
                 self.logger.log(99, qr)
+                try:
 
-                if self.last_qr_url != msg['loginQrcode']:
-                    
-                    self.last_qr_url = msg['loginQrcode']
-                    try:
-                        file = tempfile.NamedTemporaryFile()
-                        with urlopen('data: image/png; base64,'+qr_obj.png_as_base64_str(scale=1)) as response:
-                            data = response.read()
-                            file.write(data)
-                                                
-                        chat = ChatMgr.build_efb_chat_as_private(EFBPrivateChat(
-                            uid='filehelper',
-                            name='文件传输助手',
-                            ))
-                        author = chat.other
-                        efb_msg = efb_image_wrapper(file)[0]
-                        efb_msg.author = author
-                        efb_msg.chat = chat
-                        efb_msg.deliver_to = coordinator.master
-                        efb_msg.text = "\n\nWechat Login Qrcode\n\n"
-                        coordinator.send_message(efb_msg)
-                    except Exception as e:
-                        print(e)
+                    self.logger.info("Send Qrcode")
+
+                    file = tempfile.NamedTemporaryFile()
+                    with urlopen('data: image/png; base64,'+qr_obj.png_as_base64_str(scale=1)) as response:
+                        data = response.read()
+                        file.write(data)
+                                            
+                    chat = ChatMgr.build_efb_chat_as_private(EFBPrivateChat(
+                        uid='filehelper',
+                        name='文件传输助手',
+                        ))
+                    author = chat.other
+                    efb_msg = efb_image_wrapper(file)[0]
+                    efb_msg.author = author
+                    efb_msg.chat = chat
+                    efb_msg.deliver_to = coordinator.master
+                    efb_msg.text = "\n\nWechat Login Qrcode\n\n"
+                    coordinator.send_message(efb_msg)
+
+                    self.logger.info("Send Qrcode Success")
+                except Exception as e:
+                    self.logger.info("Send Qrcode Error ")
+                    print(e)
 
         @self.client.add_handler(OPCODE_WECHAT_GET_LOGIN_STATUS)
         async def on_login_status_change(msg: dict):
