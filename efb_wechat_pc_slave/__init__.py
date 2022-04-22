@@ -134,10 +134,6 @@ class WechatPcChannel(SlaveChannel):
                 self.logger.log(99, qr)
 
                 if self.last_qr_url != msg['loginQrcode']:
-                    if coordinator.master is None:
-                        self.logger.info("Master Channerl Is Not Ready")
-                        await asyncio.sleep(5)
-                        return
                     
                     self.last_qr_url = msg['loginQrcode']
                     try:
@@ -239,7 +235,7 @@ class WechatPcChannel(SlaveChannel):
 
         connected_event.wait()
         asyncio.run_coroutine_threadsafe(self.client.open(), self.loop).result()
-        login_event.wait()
+        # login_event.wait()
 
     def load_config(self):
         """
