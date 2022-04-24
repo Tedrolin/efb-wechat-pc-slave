@@ -56,8 +56,12 @@ class MsgProcessor:
         subject = xml.xpath('string(/msg/pushmail/content/subject/text())')
         sender = xml.xpath('string(/msg/pushmail/content/sender/text())')
         waplink = xml.xpath('string(/msg/pushmail/waplink/text())')
+        digest = xml.xpath('string(/msg/pushmail/content/digest/text())')
 
-        text = f'发件人: {sender}\n标题：{subject}\n地址:{waplink}'
+        text = f'发件人: {sender}\n标题: {subject}\n地址: {waplink}'
+        if len(digest) < 900:
+            text += f'\n内容: {digest}'
+
         return efb_text_simple_wrapper(text)
 
     # 公众号推荐
