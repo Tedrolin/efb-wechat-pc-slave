@@ -3,7 +3,10 @@ import logging
 import queue
 import threading
 import uuid
+import html
+import tempfile
 from traceback import print_exc
+from urllib.request import urlopen
 
 import yaml
 import hashlib
@@ -26,21 +29,30 @@ from cachetools import TTLCache
 
 from .ChatMgr import ChatMgr
 from .CustomTypes import EFBGroupChat, EFBPrivateChat, EFBGroupMember
-from .MsgDecorator import efb_text_simple_wrapper
+from .MsgDecorator import efb_text_simple_wrapper, efb_image_wrapper
 from .WechatPcMsgProcessor import MsgProcessor
 from .utils import process_quote_text, download_file
+from .WechatWork import WechatWork
 
 TYPE_HANDLERS = {
     1: MsgProcessor.text_msg,
     3: MsgProcessor.image_msg,
+    34: MsgProcessor.voice_msg,
+    35: MsgProcessor.mail_msg,
+    42: MsgProcessor.mp_card_msg,
+    43: MsgProcessor.voideo_msg,
+    47: MsgProcessor.emojipic_msg,
+    48: MsgProcessor.location_msg,
     49: MsgProcessor.msgType49_xml_msg
 }
 
 
 class WechatPcChannel(SlaveChannel):
     channel_name: str = "Wechat Pc Slave"
-    channel_emoji: str = "💬🖥️"
+    channel_emoji: str = "🖥️"
     channel_id = "tedrolin.wechatPc"
+
+    last_qr_url = ""
 
     wechatPc: WechatPc
     client: WechatPcClient
@@ -107,7 +119,7 @@ class WechatPcChannel(SlaveChannel):
                     total_page = total // 100 + 1
                 self.info_list['friend'] = msg['friendList']
                 self.process_friend_info()
-   
+
                 if str(total_page) == str(msg['page']):
                     self.update_friend_event.set()
             # self.async_update_friend_event.set()
@@ -121,6 +133,21 @@ class WechatPcChannel(SlaveChannel):
                              f"{msg['loginQrcode']}\n" \
                              "and then scan it with your Wechat Client"
                 self.logger.log(99, qr)
+
+                if self.last_qr_url != msg['loginQrcode']:
+                    self.last_qr_url = msg['loginQrcode']
+
+                    try: 
+                        self.logger.log(99, "Send Wechat Work Message")
+                        if 'WECHAT_WORK' in self.config:
+                            file = tempfile.NamedTemporaryFile()
+                            qr_obj.png(file.name, scale=5)
+                            res = WechatWork(self.config['WECHAT_WORK']).send_image_message(file)
+                        
+                            self.logger.log(99, "Send Wechat Work Message "+res.get("errmsg"))
+                    except:
+                        self.logger.log(99, "Send Wechat Work Message Except.")
+                        print_exc()
 
         @self.client.add_handler(OPCODE_WECHAT_GET_LOGIN_STATUS)
         async def on_login_status_change(msg: dict):
@@ -137,8 +164,8 @@ class WechatPcChannel(SlaveChannel):
         async def on_msg_receive(msg: dict):
             if 'wxid' not in msg:
                 return
-            if msg.get('isOwner', 1) == 1:
-                return
+            # if msg.get('isOwner', 1) == 1:
+            #     return
             username = await self.async_get_friend_info('nickname', msg['wxid'])
             remark_name = await self.async_get_friend_info('remark', msg['wxid'])
             chat = None
@@ -166,17 +193,19 @@ class WechatPcChannel(SlaveChannel):
             if 'msgType' in msg and msg['msgType'] in TYPE_HANDLERS:
                 efb_msgs = TYPE_HANDLERS[msg['msgType']](msg)
             else:
-                efb_msgs = efb_text_simple_wrapper(msg['content'])
-            
+                efb_msgs = efb_text_simple_wrapper(html.escape(msg['content']))
+
             for efb_msg in efb_msgs:
                 efb_msg.author = author
                 efb_msg.chat = chat
                 efb_msg.deliver_to = coordinator.master
+                if msg.get('isOwner', 1) == 1:
+                    efb_msg.text = f"🦚You🦚:\n\n{efb_msg.text}"
                 coordinator.send_message(efb_msg)
 
         async def cron_update_friends():
             while True:
-                await asyncio.sleep(60 * 10)
+                await asyncio.sleep(60 * 21.1)
                 self.logger.debug("Start updating friends")
                 await self.client.get_friend_list()
 
@@ -241,7 +270,7 @@ class WechatPcChannel(SlaveChannel):
         # self.logger.debug(f"message.vendor_specific.get('is_mp', False): {msg.vendor_specific.get('is_mp', False)}")
         if msg.vendor_specific.get('is_mp') is not None:
             msg.chat.vendor_specific['is_mp'] = msg.vendor_specific.get('is_mp')
-        
+
         if msg.edit:
             pass  # todo
 
